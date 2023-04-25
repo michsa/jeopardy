@@ -10,7 +10,7 @@ body {
   position: relative;
 }
 
-#question {
+#active {
   position: absolute;
   left: 0;
   right: 0;
@@ -25,10 +25,11 @@ body {
   width: 100%;
   height: 100%;
   background-color: #000;
+  table-layout: fixed;
 }
 
 td,
 th,
-#question {
+#active {
   background-color: blue;
 }
