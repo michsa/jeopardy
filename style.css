@@ -4,6 +4,10 @@ html {
   height: 100%;
   padding: 0;
   margin: 0;
+
+  text-transform: uppercase;
+  font-family: sans-serif;
+  color: white;
 }
 
 body {
@@ -31,5 +35,18 @@ body {
 td,
 th,
 #active {
-  background-color: blue;
+  background-color: #00008c;
+  text-align: center;
+  vertical-align: middle;
+}
+
+th {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.value {
+  color: yellow;
+  font-size: 1.5rem;
+  font-weight: bold;
 }

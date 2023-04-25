@@ -190,6 +190,7 @@ function setActive(column, row) {
   active.addEventListener("click", () => clearActive(column, row), {
     once: true,
   })
+  active.style.display = 'block'
 }
 
 function showAnswer(active, a) {
@@ -221,18 +222,25 @@ function clearActive(column, row) {
  */
 function updateGrid() {
   data.forEach(({ questions }, column) => {
-    questions.forEach((_, row) => {
+    questions.forEach(({ q, a }, row) => {
       console.log(`updateGrid (${column},${row}), completed ${isCompleted(column, row)}`)
       let cell = document.getElementById(`${column}_${row}`)
-      // clear out the cell's contents
+      let completed = isCompleted(column, row)
       cell.replaceChildren()
 
-      if (!isCompleted(column, row)) {
+      if (!completed) {
         const value = document.createElement("div")
         value.textContent = `$` + dollars[row]
         value.className = "value"
         value.addEventListener("click", () => setActive(column, row), { once: true})
         cell.append(value)
+      }
+      if(completed) {
+        const question = document.createElement("div")
+        question.innerText = q
+        const answer = document.createElement("div")
+        answer.innerText = a
+        cell.append(q, a)
       }
     })
   })
