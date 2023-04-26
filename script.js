@@ -190,7 +190,7 @@ function setActive(column, row) {
   active.addEventListener("click", () => clearActive(column, row), {
     once: true,
   })
-  active.style.display = 'block'
+  active.style.display = "block"
 }
 
 function showAnswer(active, a) {
@@ -223,7 +223,9 @@ function clearActive(column, row) {
 function updateGrid() {
   data.forEach(({ questions }, column) => {
     questions.forEach(({ q, a }, row) => {
-      console.log(`updateGrid (${column},${row}), completed ${isCompleted(column, row)}`)
+      console.log(
+        `updateGrid (${column},${row}), completed ${isCompleted(column, row)}`
+      )
       let cell = document.getElementById(`${column}_${row}`)
       let completed = isCompleted(column, row)
       cell.replaceChildren()
@@ -232,10 +234,12 @@ function updateGrid() {
         const value = document.createElement("div")
         value.textContent = `$` + dollars[row]
         value.className = "value"
-        value.addEventListener("click", () => setActive(column, row), { once: true})
+        value.addEventListener("click", () => setActive(column, row), {
+          once: true,
+        })
         cell.append(value)
       }
-      if(completed) {
+      if (completed) {
         const question = document.createElement("div")
         question.innerText = q
         const answer = document.createElement("div")
@@ -255,12 +259,15 @@ function init() {
   // we created this empty table in the html document and gave it the id "grid"
   let grid = document.getElementById("grid")
 
-  // create the header row for the categories
-  let categoryRow = document.createElement("tr") // stands for "table row"
-  // create one grid row for each dollar amount
-  let questionRows = dollars.map(() => document.createElement("tr"))
-  // add all the new rows to the table
-  grid.append(categoryRow, ...questionRows)
+  // figure out how many columns we need, and configure the grid with that amount
+  const columns = data.length
+  grid.style.gridTemplateColumns = `repeat(${columns}, 1fr)`
+
+  // We store questions by category then row (top-down then left-right), but CSS
+  // grids run left-right then top-down.  To make sure we add cells in the right
+  // order, we need to add them to temporary "rows" as we go through categories,
+  // then dump all the rows into the grid.
+  let questionRows = dollars.map(() => [])
 
   data.forEach(({ category, questions }, column) => {
     if (questions.length != dollars.length) {
@@ -268,12 +275,12 @@ function init() {
         `Invalid number of questions in category ${category}: expected ${dollars.length} but found ${questions.length}`
       )
     }
-
-    // create a header cell for the category title and add it to the category row
-    let categoryTitle = document.createElement("th") // "table header"
+    // create a header cell for the category title and add it to grid
+    let categoryTitle = document.createElement("div")
+    categoryTitle.className = 'category'
     // since categories won't change, we can just set the text now
     categoryTitle.textContent = category
-    categoryRow.appendChild(categoryTitle)
+    grid.appendChild(categoryTitle)
 
     questions.forEach(({ q, a }, row) => {
       if (!q || !a) {
@@ -283,12 +290,14 @@ function init() {
           }) in category ${category}`
         )
       }
-      let cell = document.createElement("td")
+      let questionCell = document.createElement("div")
+      questionCell.className = 'question'
       // identify the cell so we can update its contents later
-      cell.id = `${column}_${row}`
-      questionRows[row].appendChild(cell)
+      questionCell.id = `${column}_${row}`
+      questionRows[row].push(questionCell)
     })
   })
+  questionRows.forEach((row) => grid.append(...row))
 
   updateGrid()
 }
