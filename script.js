@@ -175,41 +175,134 @@ const setCompleted = (column, row) => {
   state[column][row] = true
 }
 
+/**
+ * A helper function to set a bunch of properties on an HTML element at the
+ * same time.
+ */
+function setProperties(element, properties) {
+  Object.entries(properties).forEach(([key, value]) => {
+    if (typeof value === "object") setProperties(element[key], value)
+    else element[key] = value
+  })
+}
+
+/**
+ * A helper function to create an HTML element and add properties to it at the
+ * same time.
+ */
+function createElement(type, properties) {
+  let element = document.createElement(type)
+  // setProperties(element, properties)
+  Object.entries(properties).forEach(([key, value]) => {
+    element[key] = value
+  })
+  return element
+}
+
+/**
+ * Displays the "active" screen and sets it to show a particular question,
+ * identified by the column (category) and row (dollar value).
+ * This is triggered by clicking on a question cell.
+ *
+ * The active screen is a div element that overlays the grid.  We make it
+ * invisible by setting all of its edges to the center of the screen, so that
+ * it has 0 width and height.  This lets us use the CSS `transition` property
+ * to animate expanding it back to the screen size.
+ */
 function setActive(column, row) {
+  // get the question and answer for the cell we just clicked on
   const { q, a } = data[column].questions[row]
-  console.log("setActive", { q, a })
+
+  // we created this empty element in the html document and gave it the id "active"
   let active = document.getElementById("active")
-
-  let question = document.createElement("div")
-  question.className = "active question"
-  question.textContent = q
-  question.addEventListener("click", () => showAnswer(active, a), {
-    once: true,
+  // update the element's properties to make it visible.
+  // in style.css we have it set to animate style changes over 0.5 seconds,
+  // so it will appear to expand from the center while fading in.
+  setProperties(active, {
+    style: { opacity: 1.0, left: 0, right: 0, top: 0, bottom: 0 },
+    hidden: false,
+    cursor: "pointer",
   })
-  active.appendChild(question)
-  active.addEventListener("click", () => clearActive(column, row), {
-    once: true,
+
+  let question = createElement("div", {
+    className: "question",
+    textContent: q,
   })
-  active.style.display = "block"
-}
+  let showAnswer = () => {
+    let answer = createElement("div", { className: "answer", textContent: a })
+    active.appendChild(answer)
+    // add a new click handler to return to the grid
+    active.addEventListener("click", clearActive, { once: true })
+  }
 
-function showAnswer(active, a) {
-  let answer = document.createElement("div")
-  answer.className = "answer"
-  answer.textContent = a
-  active.appendChild(answer)
-}
+  // wait 0.5 seconds for the animation to finish, and then add the question
+  // and the click handler to show the answer.
+  setTimeout(() => {
+    active.appendChild(question)
+    active.addEventListener("click", showAnswer, { once: true })
+  }, 500)
 
-function clearActive(column, row) {
-  // 1. update state and refresh the grid
+  // update state for this question to mark it as completed, so that when we go
+  // back to the board it will show the answer and no longer be clickable
   setCompleted(column, row)
+}
+
+/**
+ *
+ */
+function clearActive() {
+  // 1. update state and refresh the grid
   updateGrid()
 
-  let active = document.getElementById("active")
   // 2. hide the active question screen
-  active.style.display = "none"
-  // 3. wipe it clear
+  let active = document.getElementById("active")
+  setProperties(active, {
+    style: { opacity: 0, left: "50%", right: "50%", top: "50%", bottom: "50%" },
+    hidden: true,
+    cursor: "default",
+  })
+
+  // 3. clear the active question screen (remove the current question & answer)
   active.replaceChildren()
+}
+
+/**
+ * Sets up the given question cell with the correct dollar value and an event
+ * handler that will activate the cell's question when it is clicked.
+ */
+function initCell(column, row) {
+  let cell = document.getElementById(`${column}_${row}`)
+  // There are two ways to make things clickable in javascript: setting the
+  // `onclick` property, or adding an event listener.  We use `onclick` here
+  // because
+  cell.onclick = () => setActive(column, row)
+  cell.style.cursor = "pointer"
+
+  // add the question and answer
+  cell.replaceChildren(
+    createElement("div", {
+      textContent: `$` + dollars[row],
+      className: "value",
+    })
+  )
+}
+
+/**
+ * Mark a cell as complete
+ */
+function completeCell(column, row) {
+  let cell = document.getElementById(`${column}_${row}`)
+
+  // remove the click event and change the cursor back to normal
+  cell.onclick = null
+  cell.style.cursor = "default"
+
+  let { q, a } = data[column].questions[row]
+  const [question, answer] = [
+    createElement("div", { textContent: q, className: "question" }),
+    createElement("div", { textContent: a, className: "answer" }),
+  ]
+  cell.replaceChildren(question, answer)
 }
 
 /**
@@ -226,26 +319,10 @@ function updateGrid() {
       console.log(
         `updateGrid (${column},${row}), completed ${isCompleted(column, row)}`
       )
-      let cell = document.getElementById(`${column}_${row}`)
       let completed = isCompleted(column, row)
-      cell.replaceChildren()
 
-      if (!completed) {
-        const value = document.createElement("div")
-        value.textContent = `$` + dollars[row]
-        value.className = "value"
-        value.addEventListener("click", () => setActive(column, row), {
-          once: true,
-        })
-        cell.append(value)
-      }
-      if (completed) {
-        const question = document.createElement("div")
-        question.innerText = q
-        const answer = document.createElement("div")
-        answer.innerText = a
-        cell.append(q, a)
-      }
+      let handleCell = completed ? completeCell : initCell
+      handleCell(column, row)
     })
   })
 }
@@ -266,7 +343,7 @@ function init() {
   // We store questions by category then row (top-down then left-right), but CSS
   // grids run left-right then top-down.  To make sure we add cells in the right
   // order, we need to add them to temporary "rows" as we go through categories,
-  // then dump all the rows into the grid.
+  // then dump all the rows into the grid afterward.
   let questionRows = dollars.map(() => [])
 
   data.forEach(({ category, questions }, column) => {
@@ -276,10 +353,11 @@ function init() {
       )
     }
     // create a header cell for the category title and add it to grid
-    let categoryTitle = document.createElement("div")
-    categoryTitle.className = 'category'
-    // since categories won't change, we can just set the text now
-    categoryTitle.textContent = category
+    let categoryTitle = createElement("div", {
+      className: "category screen",
+      // since categories won't change, we can just set the text now
+      textContent: category,
+    })
     grid.appendChild(categoryTitle)
 
     questions.forEach(({ q, a }, row) => {
@@ -290,10 +368,11 @@ function init() {
           }) in category ${category}`
         )
       }
-      let questionCell = document.createElement("div")
-      questionCell.className = 'question'
+      let questionCell = createElement("div", {
+        id: `${column}_${row}`,
+        className: "screen",
+      })
       // identify the cell so we can update its contents later
-      questionCell.id = `${column}_${row}`
       questionRows[row].push(questionCell)
     })
   })

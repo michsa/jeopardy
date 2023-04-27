@@ -1,50 +1,145 @@
 body,
 html {
+  /* make sure the document fills the entire window */
   width: 100%;
   height: 100%;
   padding: 0;
   margin: 0;
 
-  text-transform: uppercase;
-  font-family: sans-serif;
-  color: white;
+  /* This tells CSS to include the size of borders and padding when it calculates
+   * element sizes. it's so useful that we want it to apply to everything. */
+  box-sizing: border-box;
 }
 
 body {
+  /* setting `position: relative` identifies an element as a reference point for
+   * any of its children that have `position: absolute` (they will be absolutely
+   * positioned relative to the parent). */
   position: relative;
 }
 
+/* styling for the "active question" screen (a div with `id="active"`) */
 #active {
+  /* Here is how we hide the "active question" screen when we are not using it.
+   * With `position: absolute`, you can use `left`, `right`, `top` and `bottom`
+   * to specify exactly where the edges of the element should be, relative to its
+   * closest `position: relative` parent.  Setting all of them to 50% means the
+   * element will be in the exact center of its parent, and have 0 width & height
+   * (not including padding and borders). */
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
+  left: 50%;
+  right: 50%;
+  top: 50%;
+  bottom: 50%;
+  opacity: 0;
+  /* Setting a positive z-index makes sure this shows over the grid. */
   z-index: 10;
-  display: none;
+  /* This causes any compatible properties to animate over 0.5 seconds whenever
+   * they change.  In this case, position and opacity will animate. */
+  transition: all 0.5s;
 }
+
+/* We want some space between the text on the "active screen" and the edge of
+ * the window.  However, we can't set padding on #active itself because that
+ * would force it to have width and height while it's supposed to be hidden.
+ * Instead, we have to set a margin (or padding) on its immediate children. */
+/* #active > div {
+  margin: 0.5em 10vw;
+} */
+
 
 #grid {
   width: 100%;
   height: 100%;
-  background-color: #000;
+  /* Renders this element as a CSS grid, which automatically positions all its
+   * children in a grid layout.  We use the `grid-template-columns` property to
+   * tell the grid how many columns it should have.  However, since the number
+   * of columns depends on how many categories we will have, we need to set it
+   * in javascript when we load the Jeopardy data.  */
   display: grid;
+  /* make sure all rows are the same height */
   grid-auto-rows: 1fr;
-  gap: 2px;
+  /* The `gap` property creates some space between the elements in the grid.
+   * (0.5vh means the gap is half of one percent of the screen's height.) */
+  gap: 0.5vh;
+  /* The black background color will show through the grid gap and look like a
+   * border between the TV screens. */ 
+  background-color: #000;
 }
 
-div,
-#active {
+/* Styles to mimic a Jeopary TV screen.  The `screen` class is assigned to all
+ * the grid cells and to the #active element. */
+.screen {
   background-color: #00008c;
+  border-style: outset;
+  border-color: #0000ac;
+  /* Sizes in em make the border and padding proportional to the  */
+  border-width: 0.7em;
+  padding: 0.5em;
+  /* Using `display: flex` is the easiest way to center */
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+  /* adds a gap between the question and answer */
+  gap: 0.5em;
+}
+
+/* This style applies to category screens/boxes.  In Jeopary boards there is a
+ * little extra gap between this row of screens and the others. */
+ .category {
+  margin-bottom: 0.5vh;
+}
+
+/* ----------------------- *\
+|*  T E X T   S T Y L E S  *|
+\* ----------------------- */
+
+/* Universal text styles.  */
+html {
+  text-transform: uppercase;
+  font-family: sans-serif;
+  color: white;
+  /* The `em` unit is a multiple of font size.  Setting the text shadow offset
+    * in em ensures that it stays consistent relative to the size of the font. */
+  text-shadow: 0.08em 0.1em #000;
+}
+
+/* Text styles for the "active question" screen.
+ * The question and answer are inside two separate child elements;
+ * setting text styles here will flow down to both of them. */
+#active {
+   /* 5vw means 5% of the width of the screen, so this text will resize itself
+    * if the screen grows or shrinks. */
+   font-size: min(5vw, 10vh);
+   font-weight: bold;
+   text-shadow: 0.08em 0.1em #000;
+}
+
+#grid .question, #grid .answer {
+  text-transform: none;
+}
+
+.answer {
+  /* `em` is relative to the font size of the parent, so this will make answer
+   * text 25% larger than the question text. */
+  font-size: 1.25em;
 }
 
 .category {
-  font-size: 1.2rem;
+  font-size: 1.5em;
   font-weight: bold;
 }
 
+/* This applies to */
 .value {
-  color: yellow;
-  font-size: 1.5rem;
+  font-size: calc(100vw / 6 / 5);
   font-weight: bold;
+  transform: scaleY(120%);
+}
+
+
+.value, .answer {
+  color: gold;
 }
