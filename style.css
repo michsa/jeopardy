@@ -23,15 +23,10 @@ body {
   /* Here is how we hide the "active question" screen when we are not using it.
    * With `position: absolute`, you can use `left`, `right`, `top` and `bottom`
    * to specify exactly where the edges of the element should be, relative to its
-   * closest `position: relative` parent.  Setting all of them to 50% means the
-   * element will be in the exact center of its parent, and have 0 width & height
-   * (not including padding and borders). */
+   * closest `position: relative` parent.  We control these values in the script
+   * in the `setActive` and `clearActive` functions.
+   */
   position: absolute;
-  left: 50%;
-  right: 50%;
-  top: 50%;
-  bottom: 50%;
-  opacity: 0;
   /* Setting a positive z-index makes sure this shows over the grid. */
   z-index: 10;
   /* This causes any compatible properties to animate over 0.5 seconds whenever
@@ -90,20 +85,37 @@ body {
  * little extra gap between this row of screens and the others. */
  .category {
   margin-bottom: 0.5vh;
+  /* Setting the cursor explicitly to default prevents it from changing to a
+   * text cursor when you hover over the category text */
+  cursor: default;
 }
 
 /* ----------------------- *\
 |*  T E X T   S T Y L E S  *|
 \* ----------------------- */
 
-/* Universal text styles.  */
+/* Universal text styles.  Text styles on an element apply to all its children
+ * unless another CSS rule overrides them, which means text styles on `html`
+ * apply to the entire page. */
 html {
   text-transform: uppercase;
   font-family: sans-serif;
   color: white;
-  /* The `em` unit is a multiple of font size.  Setting the text shadow offset
-    * in em ensures that it stays consistent relative to the size of the font. */
-  text-shadow: 0.08em 0.1em #000;
+}
+
+/* Another global style to give all the text a black shadow.  The `em` unit is
+ * a multiple of font size; setting the text shadow offset in `em` ensures that
+ * it stays consistent relative to the size of the font.
+ *
+ * We do this in a `*` selector (matches all elements) instead of on `html`
+ * (the document root, so styles cascade to all children) because the size of
+ * the `em` unit for a given rule is derived from the font-size of the element
+ * that matched the rule's CSS selector.  So, if `text-shadow` is defined on an
+ * `html` selector, the size of the shadow would always be relative to the font
+ * size of the `html` element, even on children with different font sizes.
+ */
+* {
+  text-shadow: 0.07em 0.09em #000;
 }
 
 /* Text styles for the "active question" screen.
@@ -114,10 +126,15 @@ html {
     * if the screen grows or shrinks. */
    font-size: min(5vw, 10vh);
    font-weight: bold;
-   text-shadow: 0.08em 0.1em #000;
+   cursor: pointer;
 }
 
 #grid .question, #grid .answer {
+  /* Remove the forced uppercase for questions & answers on completed cells in
+   * the grid.  This is mostly to make the text a little shorter, so it's less
+   * likely to stretch the grid out.  Since all other text is uppercase, it's
+   * easier to apply that as a global style, and then override only this text
+   * back to default. */
   text-transform: none;
 }
 
@@ -132,10 +149,10 @@ html {
   font-weight: bold;
 }
 
-/* This applies to */
 .value {
   font-size: calc(100vw / 6 / 5);
   font-weight: bold;
+  /* make the dollar values 20% taller relative to their width */
   transform: scaleY(120%);
 }
 

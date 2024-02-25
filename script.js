@@ -154,28 +154,6 @@ const data = [
 ]
 
 /**
- * A 2D array that stores which questions have already been completed.
- * The first index is the column (category), and the second is the row (dollar
- * amount).
- */
-const state = []
-
-// JS is forgiving about array lookups - if the index is out of bounds, it will
-// not throw an error, only return `undefined`.  Undefined is "falsy" in JS,
-// meaning it evaluates to false in boolean operations like `if` or `!`.
-// `!!` (not not) turns a falsy value into `false`.
-const isCompleted = (column, row) => !!state?.[column]?.[row]
-
-// JS is also forgiving about setting array values by index even when the index
-// is outside the array - it will update the array's length accordingly, making
-// a "sparse" array.  We just have to make sure `state[column]` is an array
-// before we attempt to look up `row` in it.
-const setCompleted = (column, row) => {
-  if (!state[column]) state[column] = []
-  state[column][row] = true
-}
-
-/**
  * A helper function to set a bunch of properties on an HTML element at the
  * same time.
  */
@@ -219,50 +197,53 @@ function setActive(column, row) {
   // in style.css we have it set to animate style changes over 0.5 seconds,
   // so it will appear to expand from the center while fading in.
   setProperties(active, {
-    style: { opacity: 1.0, left: 0, right: 0, top: 0, bottom: 0 },
+    style: { opacity: 1.0, left: 0, right: 0, top: 0, bottom: 0, pointerEvents: 'auto' },
     hidden: false,
-    cursor: "pointer",
   })
 
   let question = createElement("div", {
     className: "question",
     textContent: q,
   })
-  let showAnswer = () => {
+  let onClickQuestion = () => {
     let answer = createElement("div", { className: "answer", textContent: a })
     active.appendChild(answer)
     // add a new click handler to return to the grid
     active.addEventListener("click", clearActive, { once: true })
+    // update the cell on the board to its completed state
+    completeCell(column, row)
   }
 
   // wait 0.5 seconds for the animation to finish, and then add the question
   // and the click handler to show the answer.
   setTimeout(() => {
     active.appendChild(question)
-    active.addEventListener("click", showAnswer, { once: true })
+    active.addEventListener("click", onClickQuestion, { once: true })
   }, 500)
-
-  // update state for this question to mark it as completed, so that when we go
-  // back to the board it will show the answer and no longer be clickable
-  setCompleted(column, row)
 }
 
 /**
- *
+ * Hides the "active" screen and makes it non-clickable.
  */
 function clearActive() {
-  // 1. update state and refresh the grid
-  updateGrid()
-
-  // 2. hide the active question screen
+  // 1. hide the active question screen
   let active = document.getElementById("active")
+  // On an element with `position: absolute` and 0 minimum size, setting all
+  // the positional offsets (`left`, `right`, `top`, `bottom`) to 50% will
+  // position it in the exact center of its parent.  However, the "active"
+  // element does have a minimum size because of its class `screen`, which
+  // gives it the beveled border that mimics the jeopardy screen (0.7em wide)
+  // and 0.5em of padding.  Thus, to actually center it, we need to subtract
+  // the border and padding size from our 50% positional offset.
+  let offset = "calc(50% - 0.7em - 0.5em)"
   setProperties(active, {
-    style: { opacity: 0, left: "50%", right: "50%", top: "50%", bottom: "50%" },
+    style: {
+      opacity: 0, pointerEvents: 'none',
+      left: offset, right: offset, top: offset, bottom: offset
+    },
     hidden: true,
-    cursor: "default",
   })
-
-  // 3. clear the active question screen (remove the current question & answer)
+  // 2. clear the active question screen (remove the current question & answer)
   active.replaceChildren()
 }
 
@@ -270,11 +251,14 @@ function clearActive() {
  * Sets up the given question cell with the correct dollar value and an event
  * handler that will activate the cell's question when it is clicked.
  */
-function initCell(column, row) {
-  let cell = document.getElementById(`${column}_${row}`)
+function initCell(column, row, element) {
+  let cell = element ?? document.getElementById(`${column}_${row}`)
   // There are two ways to make things clickable in javascript: setting the
-  // `onclick` property, or adding an event listener.  We use `onclick` here
-  // because
+  // `onclick` property, or adding an event listener.  An element can have
+  // multiple event listeners, and it's possible to accidentally add the same
+  // event listener more than once, which would call the function multiple
+  // times.  Since we only want to call `setActive` once, and nothing else,
+  // it's best to use `onclick`.
   cell.onclick = () => setActive(column, row)
   cell.style.cursor = "pointer"
 
@@ -306,33 +290,12 @@ function completeCell(column, row) {
 }
 
 /**
- * Updates each question cell in the grid (not including category titles) to
- * display the proper data:
- *
- * - if the question is incomplete (nothing in `state`), show the dollar value
- *   and add a click handler to select the question
- * - if the question is completed, make it blank i guess
- */
-function updateGrid() {
-  data.forEach(({ questions }, column) => {
-    questions.forEach(({ q, a }, row) => {
-      console.log(
-        `updateGrid (${column},${row}), completed ${isCompleted(column, row)}`
-      )
-      let completed = isCompleted(column, row)
-
-      let handleCell = completed ? completeCell : initCell
-      handleCell(column, row)
-    })
-  })
-}
-
-/**
  * Initialize the jeopardy grid.  This function creates the necessary rows and
  * cells, adds category titles to each column, and validates that question data
  * is formatted correctly.
  */
 function init() {
+  clearActive()
   // we created this empty table in the html document and gave it the id "grid"
   let grid = document.getElementById("grid")
 
@@ -369,16 +332,15 @@ function init() {
         )
       }
       let questionCell = createElement("div", {
+        // identify the cell by column and row so we can update its contents later
         id: `${column}_${row}`,
         className: "screen",
       })
-      // identify the cell so we can update its contents later
+      initCell(column, row, questionCell)
       questionRows[row].push(questionCell)
     })
   })
   questionRows.forEach((row) => grid.append(...row))
-
-  updateGrid()
 }
 
 document.addEventListener("DOMContentLoaded", init)
