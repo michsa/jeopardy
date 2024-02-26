@@ -1,3 +1,5 @@
+// -------------------------------- D A T A -------------------------------- //
+
 const dollars = [200, 400, 600, 800, 1000]
 
 const data = [
@@ -153,6 +155,26 @@ const data = [
   },
 ]
 
+// -----------------------I N I T I A L I Z A T I O N ---------------------- //
+
+/**
+ * Calls the `init` function to set up the grid after the document is loaded.
+ * We need to wait for the document to load because `init` adds new HTML
+ * elements to a container defined in `jeopardy.html` (`<div id="grid">`).
+ * If we try to run it before the container is present in the DOM, it'll error.
+ *
+ * Note: here we call a function above where it has been defined in the file.
+ * This works in JS because functions defined with the `function` keyword are
+ * "hoisted", meaning the interpreter moves them to the top of the file before
+ * execution.  This is _not_ the case for function expressions assigned to
+ * variables, eg `const init = () => { ... }`.  Those are not hoisted, so they
+ * can only be used after they're defined.
+ */
+document.addEventListener("DOMContentLoaded", init)
+
+
+// ----------------------------- H E L P E R S ----------------------------- //
+
 /**
  * A helper function to set a bunch of properties on an HTML element at the
  * same time.
@@ -170,10 +192,7 @@ function setProperties(element, properties) {
  */
 function createElement(type, properties) {
   let element = document.createElement(type)
-  // setProperties(element, properties)
-  Object.entries(properties).forEach(([key, value]) => {
-    element[key] = value
-  })
+  setProperties(element, properties)
   return element
 }
 
@@ -202,6 +221,8 @@ function getData(column, row) {
   }
   return { q, a }
 }
+
+// -------------- A C T I V E - Q U E S T I O N - S C R E E N -------------- //
 
 /**
  * Displays the "active" screen and sets it to show a particular question,
@@ -284,6 +305,8 @@ function clearActive() {
   active.replaceChildren()
 }
 
+// ------------------------------- C E L L S ------------------------------- //
+
 /**
  * Sets up the given question cell with the correct dollar value and an event
  * handler that will activate the cell's question when it is clicked.
@@ -312,7 +335,6 @@ function initCell(column, row, element) {
   // it's best to use `onclick`.
   cell.onclick = () => setActive(column, row)
   cell.style.cursor = "pointer"
-
   cell.replaceChildren(
     createElement("div", {
       textContent: `$` + dollars[row],
@@ -340,6 +362,8 @@ function completeCell(column, row) {
   ]
   cell.replaceChildren(question, answer)
 }
+
+// -------------------------------- G R I D -------------------------------- //
 
 /**
  * Initialize the jeopardy grid.  This function creates the necessary rows and
@@ -391,5 +415,3 @@ function init() {
   })
   questionRows.forEach((row) => grid.append(...row))
 }
-
-document.addEventListener("DOMContentLoaded", init)
