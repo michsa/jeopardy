@@ -2,18 +2,7 @@
 
 ![Jeopardy grid with some questions answered](img/grid.png)
 
-<div style="display: flex; gap: 1.5em;">
-<span>
-
-![Question card](img/question.png)
-
-</span>
-<span>
-
-![Question card with answer](img/answer.png)
-
-</span>
-</div>
+<img src="img/question.png" width="50%" /><img src="img/answer.png" width="50%" />
 
 A simple Jeopardy simulator, primarily meant as an educational tool for presentations (which is why finished questions and answers are shown on the grid, unlike in real Jeopardy).
 
