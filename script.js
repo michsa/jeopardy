@@ -178,6 +178,32 @@ function createElement(type, properties) {
 }
 
 /**
+ * Helper for getting question data for a column and row.
+ * This function prints a detailed error message to the browser console if any
+ * of the data is missing (which will cause the cell to appear blank).
+ */
+function getData(column, row) {
+  const { category, questions } = data[column]
+  const question = questions?.[row]
+  let { q = "", a = "" } = question ?? {}
+  if (!question || !q || !a) {
+    let detail = " "
+    if (question) {
+      let missing = []
+      if (!q) missing.push('"q"')
+      if (!a) missing.push('"a"')
+      detail = ` ${missing.join(" and ")} for `
+    }
+    console.error(
+      `Missing` +
+        detail +
+        `question ${row + 1} ($${dollars[row]}) in category ${category}`
+    )
+  }
+  return { q, a }
+}
+
+/**
  * Displays the "active" screen and sets it to show a particular question,
  * identified by the column (category) and row (dollar value).
  * This is triggered by clicking on a question cell.
@@ -189,7 +215,7 @@ function createElement(type, properties) {
  */
 function setActive(column, row) {
   // get the question and answer for the cell we just clicked on
-  const { q, a } = data[column].questions[row]
+  const { q, a } = getData(column, row)
 
   // we created this empty element in the html document and gave it the id "active"
   let active = document.getElementById("active")
@@ -197,7 +223,14 @@ function setActive(column, row) {
   // in style.css we have it set to animate style changes over 0.5 seconds,
   // so it will appear to expand from the center while fading in.
   setProperties(active, {
-    style: { opacity: 1.0, left: 0, right: 0, top: 0, bottom: 0, pointerEvents: 'auto' },
+    style: {
+      opacity: 1.0,
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      pointerEvents: "auto",
+    },
     hidden: false,
   })
 
@@ -238,8 +271,12 @@ function clearActive() {
   let offset = "calc(50% - 0.7em - 0.5em)"
   setProperties(active, {
     style: {
-      opacity: 0, pointerEvents: 'none',
-      left: offset, right: offset, top: offset, bottom: offset
+      opacity: 0,
+      left: offset,
+      right: offset,
+      top: offset,
+      bottom: offset,
+      pointerEvents: "none",
     },
     hidden: true,
   })
@@ -250,9 +287,23 @@ function clearActive() {
 /**
  * Sets up the given question cell with the correct dollar value and an event
  * handler that will activate the cell's question when it is clicked.
+ *
+ * This function accepts an optional reference to the cell's element because we
+ * first call it (in the `init` function) _before_ we add the element to the
+ * DOM, meaning we can't yet look up the element with `document.getElementById`
+ * and must pass it in directly instead.
  */
 function initCell(column, row, element) {
   let cell = element ?? document.getElementById(`${column}_${row}`)
+
+  // If any of the data is missing, make the cell empty and unclickable.
+  const { q, a } = getData(column, row)
+  if (!q || !a) {
+    cell.onclick = null
+    cell.replaceChildren()
+    return
+  }
+
   // There are two ways to make things clickable in javascript: setting the
   // `onclick` property, or adding an event listener.  An element can have
   // multiple event listeners, and it's possible to accidentally add the same
@@ -262,7 +313,6 @@ function initCell(column, row, element) {
   cell.onclick = () => setActive(column, row)
   cell.style.cursor = "pointer"
 
-  // add the question and answer
   cell.replaceChildren(
     createElement("div", {
       textContent: `$` + dollars[row],
@@ -272,7 +322,9 @@ function initCell(column, row, element) {
 }
 
 /**
- * Mark a cell as complete
+ * "Complete" a cell by updating it to show the question and answer instead of
+ * the dollar amount.  On real jeopardy they blank out the cell, but since this
+ * is meant as an educational tool, we want to keep the information visible.
  */
 function completeCell(column, row) {
   let cell = document.getElementById(`${column}_${row}`)
@@ -281,7 +333,7 @@ function completeCell(column, row) {
   cell.onclick = null
   cell.style.cursor = "default"
 
-  let { q, a } = data[column].questions[row]
+  let { q, a } = getData(column, row)
   const [question, answer] = [
     createElement("div", { textContent: q, className: "question" }),
     createElement("div", { textContent: a, className: "answer" }),
@@ -311,7 +363,7 @@ function init() {
 
   data.forEach(({ category, questions }, column) => {
     if (questions.length != dollars.length) {
-      throw Error(
+      console.warn(
         `Invalid number of questions in category ${category}: expected ${dollars.length} but found ${questions.length}`
       )
     }
@@ -323,14 +375,11 @@ function init() {
     })
     grid.appendChild(categoryTitle)
 
-    questions.forEach(({ q, a }, row) => {
-      if (!q || !a) {
-        throw Error(
-          `Missing question or answer for question ${row + 1} ($${
-            dollars[row]
-          }) in category ${category}`
-        )
-      }
+    // Create as many rows for each column as there are items in the `dollars`
+    // array (extra questions will be ignored). `row` is the index; we don't
+    // need the dollar value, so we call its parameter `_`, which is the common
+    // way to indicate that a parameter is ignorable.
+    dollars.forEach((_, row) => {
       let questionCell = createElement("div", {
         // identify the cell by column and row so we can update its contents later
         id: `${column}_${row}`,
