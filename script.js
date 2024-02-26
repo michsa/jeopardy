@@ -374,6 +374,8 @@ function init() {
   clearActive()
   // we created this empty table in the html document and gave it the id "grid"
   let grid = document.getElementById("grid")
+  // clear the grid (in case someone is running this from console to reset the board)
+  grid.replaceChildren()
 
   // figure out how many columns we need, and configure the grid with that amount
   const columns = data.length
